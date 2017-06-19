@@ -1,47 +1,69 @@
 ﻿/// <reference path="game.js" />
 /// <reference path="../state-machine.min.js" />
 /// <reference path="../phaser.min.js" />
-//var FSM = new StateMachine({
-//            init: 'ground',
-//            transitions: [
-//              { name: 'jump', from: 'ground', to: 'air' },
-//              { name: 'fall', from: 'air', to: 'ground' },
-//              { name: 'climbDown', from: 'ground', to: 'hang' },
-//              { name: 'hang', from: 'air', to: 'hang' },
-//            ],
-//            data: function (player) {      //  <-- use a method that can be called for each instance
-//                return {
-//                    player: player
-//                }
-//            },
-//            methods: {
-//                onJump: function () {
-//                    console.log(this.player.body.velocity.x);
-//                    this.player.body.velocity.y -= 800;
-//                    this.player.animations.play('jump');
-//                }
-//            }
-//        });
 
-  var FSM = StateMachine.factory({
+var HMotionFsm = StateMachine.factory({
+    init: 'idle',
+    transitions: [
+      { name: 'moveLeft', from: '*', to: 'left' },
+      { name: 'moveRight', from: '*', to: 'right' },
+      { name: 'rest', from: '*', to: 'idle' },
+    ],
+    data: function (player, fsm) {      //  <-- use a method that can be called for each instance
+        return {
+            player: player,
+            fsm: fsm
+        }
+    },
+    methods: {
+        onMoveLeft: function () {
+            if (this.fsm.state != 'air') {
+                this.player.animations.play('walk');
+            }
+            this.player.body.velocity.x = -200;
+            this.player.scale.x = -1 * Math.abs(this.player.scale.x);
+        },
+        onMoveRight: function (speed) {
+            if (this.fsm.state != 'air') {
+                this.player.animations.play('walk');
+            }
+            this.player.body.velocity.x = 200;
+            this.player.scale.x = 1 * Math.abs(this.player.scale.x);
+        },
+        onRest: function () {
+            if (this.fsm.state == 'air') {
+                this.player.animations.play('jump');
+            }
+            else {
+                this.player.animations.play('stand');
+                this.player.body.velocity.x = 0;
+            }
+       },
+
+    }
+});
+
+var VMotionFsm = StateMachine.factory({
     init: 'ground',
     transitions: [
       { name: 'jump', from: 'ground', to: 'air' },
-      { name: 'rest', from: 'air', to: 'ground' }
+      { name: 'fall', from: 'air', to: 'ground' },
     ],
-    data: function(player) {      //  <-- use a method that can be called for each instance
-      return {
-        player: player
-      }
+    data: function (player) {      //  <-- use a method that can be called for each instance
+        return {
+            player: player
+        }
     },
     methods: {
-      onJump: function() {
-        console.log('I am ' + this.color);
-        this.player.body.velocity.y -= 800;
-        this.player.animations.play('jump');
-      }
+        onJump: function () {
+            console.log('I am ' + this.color);
+            this.player.body.velocity.y -= 800;
+            this.player.animations.play('jump');
+        },
+        onFall: function () {
+        },
     }
-  });
+});
 
 var playState = {
     preload: function () {
@@ -71,7 +93,8 @@ var playState = {
         this.cursor = game.input.keyboard.createCursorKeys();
         game.camera.follow(this.player);
         this.bgLayer.resizeWorld();
-        this.fsm = new FSM(this.player);
+        this.vFsm = new VMotionFsm(this.player);
+        this.hFsm = new HMotionFsm(this.player, this.vFsm);
     },
 
     update: function () {
@@ -85,32 +108,27 @@ var playState = {
 
     movePlayer: function () {
         if (this.player.body.velocity.x == 0 && this.player.body.velocity.y == 0) {
-            this.player.animations.play();
+            this.hFsm.rest();
         }
 
-        if (this.fsm.state == 'air' && this.player.body.blocked.down) {
-            this.fsm.rest();
+        if (this.vFsm.state == 'air' && this.player.body.blocked.down) {
+            this.vFsm.fall();
         }
 
         if (this.cursor.left.isDown) {
-            this.player.body.velocity.x = -200;
-            this.player.animations.play('walk');
-            this.player.scale.x = -1 * Math.abs(this.player.scale.x);
+            this.hFsm.moveLeft();
         }
 
         else if (this.cursor.right.isDown) {
-            this.player.animations.play('walk');
-            this.player.body.velocity.x = 200;
-            this.player.rotation = 0
-            this.player.scale.x = Math.abs(this.player.scale.x);
+            this.hFsm.moveRight();
         }
 
         else {
-            this.player.body.velocity.x = 0;
+            this.hFsm.rest();
         }
 
         if (this.cursor.up.isDown && this.player.body.blocked.down) {
-            this.fsm.jump(this.player);
+            this.vFsm.jump(this.player);
         }
     }
 }
