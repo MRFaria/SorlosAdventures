@@ -89,6 +89,7 @@ var playState = {
         this.player.animations.add('stand', ['stand_0.png', 'stand_1.png', 'stand_2'], 5, true);
         this.player.animations.add('walk', ['Walk_0.png', 'Walk_1.png', 'Walk_2.png', 'Walk_3.png'], 5, false);
         this.player.animations.add('jump', ['Jump_1.png', 'Jump_2.png'], 5, false);
+        this.player.body.collideWorldBounds = true;
 
         this.cursor = game.input.keyboard.createCursorKeys();
         game.camera.follow(this.player);
