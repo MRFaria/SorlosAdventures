@@ -274,7 +274,12 @@
 },
 {
 	"filename": "Jump_1.png",
-	"frame": {"x":46,"y":390,"w":44,"h":78},
+  "frame": {
+    "x": 46,
+    "y": 390,
+    "w": 44,
+    "h": 78
+  },
 	"rotated": false,
 	"trimmed": false,
 	"spriteSourceSize": {"x":0,"y":0,"w":44,"h":78},
