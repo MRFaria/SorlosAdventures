@@ -2,94 +2,12 @@
 /// <reference path="../state-machine.min.js" />
 /// <reference path="../phaser.min.js" />
 
-var AttackFsm = StateMachine.factory({
-    init: 'idle',
-    transitions: [
-      { name: 'shoot', from: '*', to: 'fireBall' }
-    ],
-    data: function (player) {      //  <-- use a method that can be called for each instance
-        return {
-            player: player
-        }
-    },
-    methods: {
-        onShoot: function () {
-            this.player.animations.play('shoot');
-        }
-    }
-});
-
-var HMotionFsm = StateMachine.factory({
-    init: 'idle',
-    transitions: [
-      { name: 'moveLeft', from: '*', to: 'left' },
-      { name: 'moveRight', from: '*', to: 'right' },
-      { name: 'stand', from: '*', to: 'idle' },
-    ],
-    data: function (player, fsm) {      //  <-- use a method that can be called for each instance
-        return {
-            player: player,
-            fsm: fsm
-        }
-    },
-    methods: {
-        onMoveLeft: function () {
-            if (this.fsm.state != 'air') {
-                this.player.animations.play('walk');
-            }
-            if (this.player.body.velocity.x > -250)
-                this.player.body.velocity.x -= 20;
-            this.player.scale.x = -1 * Math.abs(this.player.scale.x);
-        },
-        onMoveRight: function (speed) {
-            if (this.fsm.state != 'air' && this.player.body.velocity.x < 300) {
-                this.player.animations.play('walk');
-            }
-            if (this.player.body.velocity.x < 250)
-                this.player.body.velocity.x += 20;
-            this.player.scale.x = 1 * Math.abs(this.player.scale.x);
-        },
-        onStand: function () {
-            if (this.fsm.state == 'air') {
-                this.player.animations.play('jump');
-            }
-            else {
-                this.player.body.velocity.x = 0;
-            }
-        },
-    }
-});
-
-var VMotionFsm = StateMachine.factory({
-    init: 'ground',
-    transitions: [
-      { name: 'jump', from: 'ground', to: 'air' },
-      { name: 'fall', from: 'air', to: 'ground' },
-    ],
-    data: function (player) {      //  <-- use a method that can be called for each instance
-        return {
-            player: player
-        }
-    },
-    methods: {
-        onJump: function () {
-            console.log('I am ' + this.color);
-            this.player.body.velocity.y -= 800;
-            this.player.animations.play('jump');
-        },
-        onFall: function () {
-            this.player.animations.play('stand');
-        },
-    }
-});
-
 
 var playState = {
     preload: function () {
     },
 
     create: function () {
-        //this.text.
 
         this.map = game.add.tilemap('level1');
         this.map.addTilesetImage('goodly-2x');
@@ -119,23 +37,21 @@ var playState = {
 
         this.player.skillQueue = [];
 
-        this.vFsm = new VMotionFsm(this.player);
-        this.hFsm = new HMotionFsm(this.player, this.vFsm);
         this.player.text = game.add.text(0, window.innerHeight - 50, 'Q W E',
             { font: '30px Arial', fill: '#ffffff' });
         this.player.text.fixedToCamera = true;
 
-        this.attackFsm = new AttackFsm(this.player);
-        this.waiting = false;
-        this.skill();
+        this.vFSM = new VMotionFSM(this.player);
+        this.hFSM = new HMotionFSM(this.player, this.vFSM);
+        this.attackFSM = new AttackFSM(this.player, this.vFSM, this.hFSM);
 
+        this.handleCastingInputs()
     },
 
     update: function () {
         game.physics.arcade.collide(this.player, this.collision);
         this.movePlayer();
         this.time = game.time.now;
-
     },
 
     render: function () {
@@ -144,43 +60,43 @@ var playState = {
 
     movePlayer: function () {
         if (this.player.body.velocity.x == 0 && this.player.body.velocity.y == 0) {
-            this.hFsm.stand();
+            this.hFSM.stand();
         }
 
-        if (this.vFsm.state == 'air' && this.player.body.blocked.down) {
-            this.vFsm.fall();
+        if (this.vFSM.state == 'air' && this.player.body.blocked.down) {
+            this.vFSM.fall();
         }
 
         if (this.cursor.left.isDown) {
-            this.hFsm.moveLeft();
+            this.hFSM.moveLeft();
         }
 
         else if (this.cursor.right.isDown) {
-            this.hFsm.moveRight();
+            this.hFSM.moveRight();
         }
 
         else {
-            this.hFsm.stand();
+            this.hFSM.stand();
         }
 
         if (this.cursor.up.isDown && this.player.body.blocked.down) {
-            this.vFsm.jump(this.player);
+            this.vFSM.jump(this.player);
         }
     },
 
-    skill: function () {
+    handleCastingInputs: function () {
         wKey = game.input.keyboard.addKey(Phaser.Keyboard.W);
         wKey.name = 'W';
         qKey = game.input.keyboard.addKey(Phaser.Keyboard.Q);
         qKey.name = 'Q';
         eKey = game.input.keyboard.addKey(Phaser.Keyboard.E);
         eKey.name = 'E';
-        rKey = game.input.keyboard.addKey(Phaser.Keyboard.R);
-        rKey.name = 'R';
-        wKey.onDown.add(invoke, {key: wKey, player: this.player});
-        qKey.onDown.add(invoke, {key: qKey, player: this.player});
-        eKey.onDown.add(invoke, {key: eKey, player: this.player});
-        rKey.onDown.add(cast,  {keys: this.player.skillQueue, player: this.player});
+        sKey = game.input.keyboard.addKey(Phaser.Keyboard.SPACEBAR);
+        sKey.name = 'S';
+        wKey.onDown.add(invoke, { key: wKey, player: this.player });
+        qKey.onDown.add(invoke, { key: qKey, player: this.player });
+        eKey.onDown.add(invoke, { key: eKey, player: this.player });
+        sKey.onDown.add(cast, { keys: this.player.skillQueue, player: this.player, game: this });
     },
 }
 
@@ -188,14 +104,13 @@ function invoke() {
     console.log("key was pressed");
     var array = this.player.skillQueue;
 
-    if(array.length >= 3)
+    if (array.length >= 3)
         array.shift();
 
     array.push(this.key);
 
     text = '';
-    for (var i = 0; i < array.length; i++)
-    {
+    for (var i = 0; i < array.length; i++) {
         text += array[i].name;
     }
 
@@ -203,6 +118,16 @@ function invoke() {
 }
 
 function cast() {
-    console.log("Invoking Spell");
+    if (this.game.hFSM.state == 'idle' && this.game.vFSM.state == 'ground') {
+        if (this.player.text.text.split('').sort().join('') == 'WWW') {
+            console.log("Casting WWW");
+            this.game.attackFSM.shoot();
+        }
+        if (this.player.text.text.split('').sort().join('') == 'EEE') {
+            console.log("Cast IceWall");
+            this.game.attackFSM.shoot();
+        }
+    }
+
 }
 
