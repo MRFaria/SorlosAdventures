@@ -1,8 +1,9 @@
-﻿AttackFSM = StateMachine.factory({
+﻿var AttackFSM = StateMachine.factory({
     init: 'idle',
     transitions: [
-      { name: 'shoot',       from: '*', to: 'fireBall' },
-      { name: 'castIceWall', from: '*', to: 'iceWall' }
+        { name: 'shoot', from: 'idle', to: 'fireBall' },
+        { name: 'castIceWall', from: 'idle', to: 'iceWall' },
+        { name: 'stand', from: '*', to: 'idle' }
     ],
     data: function (player) {      //  <-- use a method that can be called for each instance
         return {
@@ -12,16 +13,25 @@
     methods: {
         onShoot: function () {
             this.player.animations.play('shoot');
+        },
+        onCastIceWall: function () {
+            this.player.animations.play('iceWall');
+        },
+        onStand: function () {
+            this.player.animations.play('stand');
         }
+
+
+
     }
 });
 
 HMotionFSM = StateMachine.factory({
     init: 'idle',
     transitions: [
-      { name: 'moveLeft', from: '*', to: 'left' },
-      { name: 'moveRight', from: '*', to: 'right' },
-      { name: 'stand', from: '*', to: 'idle' },
+        { name: 'moveLeft', from: '*', to: 'left' },
+        { name: 'moveRight', from: '*', to: 'right' },
+        { name: 'stand', from: '*', to: 'idle' },
     ],
     data: function (player, vFSM) {      //  <-- use a method that can be called for each instance
         return {
@@ -60,10 +70,11 @@ HMotionFSM = StateMachine.factory({
 VMotionFSM = StateMachine.factory({
     init: 'ground',
     transitions: [
-      { name: 'jump', from: 'ground', to: 'air' },
-      { name: 'fall', from: 'air', to: 'ground' },
+        { name: 'jump', from: 'ground', to: 'air' },
+        { name: 'fall', from: 'air', to: 'falling' },
+        { name: 'stand', from: 'falling', to: 'ground' }
     ],
-    data: function (player, vFSM, hFSM) {      //  <-- use a method that can be called for each instance
+    data: function (player, vFSM, hFSM) { 
         return {
             player: player,
             vFSM: vFSM,
@@ -77,8 +88,11 @@ VMotionFSM = StateMachine.factory({
             this.player.animations.play('jump');
         },
         onFall: function () {
-            this.player.animations.play('stand');
+            // for now do nothing
         },
+        onStand: function () {
+            this.player.animations.play('stand');
+        }
     }
 });
 

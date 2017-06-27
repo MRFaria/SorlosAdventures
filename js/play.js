@@ -1,14 +1,12 @@
 ﻿/// <reference path="game.js" />
 /// <reference path="../state-machine.min.js" />
-/// <reference path="../phaser.min.js" />
-
+/// <reference path="../phaser.js" />
 
 var playState = {
     preload: function () {
     },
 
     create: function () {
-
         this.map = game.add.tilemap('level1');
         this.map.addTilesetImage('goodly-2x');
         this.collision = this.map.createLayer('Collision');
@@ -20,68 +18,57 @@ var playState = {
         this.player = game.add.sprite(50, 50, 'sorlo');
         this.player.anchor.setTo(0.5, 0.5);
 
+        this.vFSM = new VMotionFSM(this.player);
+        this.hFSM = new HMotionFSM(this.player, this.vFSM);
+        this.attackFSM = new AttackFSM(this.player, this.vFSM, this.hFSM);
+
         game.physics.arcade.enable(this.player);
 
         this.player.body.gravity.y = 3000;
         this.player.body.setSize(this.player.width - 10, this.player.height - 5, 0, 0);
-        this.player.animations.add('stand', ['stand_0.png', 'stand_1.png', 'stand_2'], 5, true);
-        this.player.animations.add('walk', ['Walk_0.png', 'Walk_1.png', 'Walk_2.png', 'Walk_3.png'], 5, false);
-        this.player.animations.add('jump', ['Jump_1.png', 'Jump_2.png'], 5, false);
-        this.player.animations.add('shoot', ['Shoot_0.png', 'Shoot_1.png', 'Shoot_2.png', 'Shoot_3.png',
-        'Shoot_4.png', 'Shoot_5.png'], 20, false);
-        this.player.body.collideWorldBounds = true;
-
         this.cursor = game.input.keyboard.createCursorKeys();
         game.camera.follow(this.player);
         this.bgLayer.resizeWorld();
 
         this.player.skillQueue = [];
-
+        this.createAnimations();
         this.player.text = game.add.text(0, window.innerHeight - 50, 'Q W E',
             { font: '30px Arial', fill: '#ffffff' });
         this.player.text.fixedToCamera = true;
-
-        this.vFSM = new VMotionFSM(this.player);
-        this.hFSM = new HMotionFSM(this.player, this.vFSM);
-        this.attackFSM = new AttackFSM(this.player, this.vFSM, this.hFSM);
 
         this.handleCastingInputs()
     },
 
     update: function () {
         game.physics.arcade.collide(this.player, this.collision);
-        this.movePlayer();
-        this.time = game.time.now;
+        this.updateState();
     },
 
     render: function () {
         game.debug.cameraInfo(game.camera, 32, 32);
     },
 
-    movePlayer: function () {
-        if (this.player.body.velocity.x == 0 && this.player.body.velocity.y == 0) {
-            this.hFSM.stand();
+    updateState: function () {
+        if (this.vFSM.state == 'falling' && this.player.body.blocked.down) {
+            this.vFSM.stand();
         }
+    },
 
-        if (this.vFSM.state == 'air' && this.player.body.blocked.down) {
-            this.vFSM.fall();
-        }
+    createAnimations: function () {
+        this.player.animations.add('stand', ['stand_0.png', 'stand_1.png', 'stand_2'], 5, true);
+        this.player.animations.add('walk', ['Walk_0.png', 'Walk_1.png', 'Walk_2.png', 'Walk_3.png'], 5, false);
+        jump = this.player.animations.add('jump', ['Jump_1.png', 'Jump_2.png'], 5, false);
+        shoot = this.player.animations.add('shoot', ['Shoot_0.png', 'Shoot_1.png', 'Shoot_2.png', 'Shoot_3.png',
+            'Shoot_4.png', 'Shoot_5.png'], 20, false);
+        var frames = Phaser.Animation.generateFrameNames('IceSpell_', 0, 13, '.png')
+        console.log(frames);
+        iceWall = this.player.animations.add('iceWall', frames,
+            15, false);
+        this.player.body.collideWorldBounds = true;
 
-        if (this.cursor.left.isDown) {
-            this.hFSM.moveLeft();
-        }
-
-        else if (this.cursor.right.isDown) {
-            this.hFSM.moveRight();
-        }
-
-        else {
-            this.hFSM.stand();
-        }
-
-        if (this.cursor.up.isDown && this.player.body.blocked.down) {
-            this.vFSM.jump(this.player);
-        }
+        shoot.onComplete.add(function () { this.attackFSM.stand() }, this);
+        iceWall.onComplete.add(function () { this.attackFSM.stand() }, this);
+        iceWall.onComplete.add(function () { this.vFSM.fall() }, this);
     },
 
     handleCastingInputs: function () {
@@ -124,8 +111,8 @@ function cast() {
             this.game.attackFSM.shoot();
         }
         if (this.player.text.text.split('').sort().join('') == 'EEE') {
-            console.log("Cast IceWall");
-            this.game.attackFSM.shoot();
+            console.log('Casting EEE');
+            this.game.attackFSM.castIceWall();
         }
     }
 
