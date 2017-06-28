@@ -7,6 +7,7 @@ var playState = {
     },
 
     create: function () {
+    
         this.map = game.add.tilemap('level1');
         this.map.addTilesetImage('goodly-2x');
         this.collision = this.map.createLayer('Collision');
