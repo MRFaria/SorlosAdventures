@@ -61,6 +61,7 @@ HMotionFSM = StateMachine.factory({
                 this.player.animations.play('jump');
             }
             else {
+                this.player.animations.play('stand');
                 this.player.body.velocity.x = 0;
             }
         },

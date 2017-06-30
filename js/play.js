@@ -7,7 +7,6 @@ var playState = {
     },
 
     create: function () {
-    
         this.map = game.add.tilemap('level1');
         this.map.addTilesetImage('goodly-2x');
         this.collision = this.map.createLayer('Collision');
@@ -37,7 +36,7 @@ var playState = {
             { font: '30px Arial', fill: '#ffffff' });
         this.player.text.fixedToCamera = true;
 
-        this.handleCastingInputs()
+        this.handleCastingInputs();
     },
 
     update: function () {
@@ -53,11 +52,27 @@ var playState = {
         if (this.vFSM.state == 'falling' && this.player.body.blocked.down) {
             this.vFSM.stand();
         }
+        if (this.cursor.left.isDown) {
+            // Move the player to the left
+            // The velocity is in pixels per second
+            this.hFSM.moveLeft();
+        }
+
+        // If the right arrow key is pressed
+        else if (this.cursor.right.isDown) {
+            // Move the player to the right
+            this.hFSM.moveRight();
+        }
+
+        if (this.cursor.up.isDown && this.player.body.touching.down) {
+            // Move the player upward (jump)
+            this.vFSM.jump();
+        }
     },
 
     createAnimations: function () {
         this.player.animations.add('stand', ['stand_0.png', 'stand_1.png', 'stand_2'], 5, true);
-        this.player.animations.add('walk', ['Walk_0.png', 'Walk_1.png', 'Walk_2.png', 'Walk_3.png'], 5, false);
+        walk = this.player.animations.add('walk', ['Walk_0.png', 'Walk_1.png', 'Walk_2.png', 'Walk_3.png'], 5, false);
         jump = this.player.animations.add('jump', ['Jump_1.png', 'Jump_2.png'], 5, false);
         shoot = this.player.animations.add('shoot', ['Shoot_0.png', 'Shoot_1.png', 'Shoot_2.png', 'Shoot_3.png',
             'Shoot_4.png', 'Shoot_5.png'], 20, false);
@@ -69,7 +84,7 @@ var playState = {
 
         shoot.onComplete.add(function () { this.attackFSM.stand() }, this);
         iceWall.onComplete.add(function () { this.attackFSM.stand() }, this);
-        iceWall.onComplete.add(function () { this.vFSM.fall() }, this);
+        walk.onComplete.add(function () { this.hFSM.stand() }, this);
     },
 
     handleCastingInputs: function () {
@@ -116,6 +131,5 @@ function cast() {
             this.game.attackFSM.castIceWall();
         }
     }
-
 }
 
