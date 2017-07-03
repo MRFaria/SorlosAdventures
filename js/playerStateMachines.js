@@ -1,4 +1,7 @@
-﻿var AttackFSM = StateMachine.factory({
+﻿/// <reference path="../phaser.js" />
+/// <reference path="game.js" />
+
+var AttackFSM = StateMachine.factory({
     init: 'idle',
     transitions: [
         { name: 'shoot', from: 'idle', to: 'fireBall' },
@@ -13,6 +16,10 @@
     methods: {
         onShoot: function () {
             this.player.animations.play('shoot');
+            this.bullet = game.add.sprite(this.player.x, this.player.y, 'sorlo', 'Projectile_1.png');
+            game.physics.arcade.enable(this.bullet);
+            this.bullet.body.velocity.x = this.player.scale.x/Math.abs(this.player.scale.x) * 300;
+            this.bullet.scale.x = this.player.scale.x;
         },
         onCastIceWall: function () {
             this.player.animations.play('iceWall');
@@ -74,7 +81,7 @@ VMotionFSM = StateMachine.factory({
     methods: {
         onJump: function () {
             vel = 650,
-            this.player.body.velocity.y -= vel;
+                this.player.body.velocity.y -= vel;
             this.player.animations.play('jump');
         },
         onFall: function () {

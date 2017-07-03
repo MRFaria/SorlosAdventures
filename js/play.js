@@ -38,7 +38,7 @@ var playState = {
             { font: '30px Arial', fill: '#ffffff' });
         this.player.text.fixedToCamera = true;
 
-        
+
         this.handleCastingInputs();
     },
 
@@ -55,12 +55,14 @@ var playState = {
         if (this.vFSM.state == 'air' && this.player.body.blocked.down)
             this.vFSM.fall();
 
-        if (this.cursor.left.isDown)
-            this.hFSM.moveLeft();
-        else if (this.cursor.right.isDown)
-            this.hFSM.moveRight();
-        else
-            this.hFSM.stand();
+        if (this.attackFSM.state == 'idle') {
+            if (this.cursor.left.isDown)
+                this.hFSM.moveLeft();
+            else if (this.cursor.right.isDown)
+                this.hFSM.moveRight();
+            else
+                this.hFSM.stand();
+        }
 
         if (this.vFSM.state == 'ground' && this.cursor.up.isDown) {
             this.vFSM.jump();
