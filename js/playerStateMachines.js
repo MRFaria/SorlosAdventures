@@ -5,9 +5,9 @@
         { name: 'castIceWall', from: 'idle', to: 'iceWall' },
         { name: 'stand', from: '*', to: 'idle' }
     ],
-    data: function (player) {      //  <-- use a method that can be called for each instance
+    data: function (game) {      //  <-- use a method that can be called for each instance
         return {
-            player: player
+            player: game.player
         }
     },
     methods: {
@@ -20,9 +20,6 @@
         onStand: function () {
             this.player.animations.play('stand');
         }
-
-
-
     }
 });
 
@@ -33,67 +30,56 @@ HMotionFSM = StateMachine.factory({
         { name: 'moveRight', from: '*', to: 'right' },
         { name: 'stand', from: '*', to: 'idle' },
     ],
-    data: function (player, vFSM) {      //  <-- use a method that can be called for each instance
+    data: function (game) {      //  <-- use a method that can be called for each instance
         return {
-            player: player,
-            FSM: vFSM
+            player: game.player,
+            game: game,
         }
     },
     methods: {
         onMoveLeft: function () {
-            if (this.FSM.state != 'air') {
+            vel = 250;
+            if (this.game.vFSM.state != 'air')
                 this.player.animations.play('walk');
-            }
-            if (this.player.body.velocity.x > -250)
-                this.player.body.velocity.x -= 20;
+            this.player.body.velocity.x = -vel;
             this.player.scale.x = -1 * Math.abs(this.player.scale.x);
         },
-        onMoveRight: function (speed) {
-            if (this.FSM.state != 'air' && this.player.body.velocity.x < 300) {
+        onMoveRight: function () {
+            vel = 250;
+            if (this.game.vFSM.state != 'air')
                 this.player.animations.play('walk');
-            }
-            if (this.player.body.velocity.x < 250)
-                this.player.body.velocity.x += 20;
+            this.player.body.velocity.x = vel;
             this.player.scale.x = 1 * Math.abs(this.player.scale.x);
         },
         onStand: function () {
-            if (this.FSM.state == 'air') {
-                this.player.animations.play('jump');
-            }
-            else {
+            if (this.game.vFSM.state == 'idle' && this.game.attackFSM.state == 'idle')
                 this.player.animations.play('stand');
-                this.player.body.velocity.x = 0;
-            }
+            this.player.body.velocity.x = 0;
         },
     }
 });
+
 
 VMotionFSM = StateMachine.factory({
     init: 'ground',
     transitions: [
         { name: 'jump', from: 'ground', to: 'air' },
-        { name: 'fall', from: 'air', to: 'falling' },
-        { name: 'stand', from: 'falling', to: 'ground' }
+        { name: 'fall', from: 'air', to: 'ground' }
     ],
-    data: function (player, vFSM, hFSM) { 
+    data: function (game) {
         return {
-            player: player,
-            vFSM: vFSM,
-            hFSM: hFSM
+            player: game.player,
         }
     },
     methods: {
         onJump: function () {
-            console.log('I am ' + this.color);
-            this.player.body.velocity.y -= 800;
+            vel = 650,
+            this.player.body.velocity.y -= vel;
             this.player.animations.play('jump');
         },
         onFall: function () {
-            // for now do nothing
-        },
-        onStand: function () {
             this.player.animations.play('stand');
-        }
+        },
     }
 });
 

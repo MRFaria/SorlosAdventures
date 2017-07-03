@@ -8,34 +8,37 @@ var playState = {
 
     create: function () {
         this.map = game.add.tilemap('level1');
+        this.map.addTilesetImage('bg');
         this.map.addTilesetImage('goodly-2x');
         this.collision = this.map.createLayer('Collision');
         this.bgLayer = this.map.createLayer('Background');
-        this.detailsLayer = this.map.createLayer('Details');
         this.tilesLayer = this.map.createLayer('Tiles');
-        this.map.setCollision(71, true, "Collision");
+        this.map.setCollision(951, true, "Collision");
 
-        this.player = game.add.sprite(50, 50, 'sorlo');
+        this.player = game.add.sprite(300, 300, 'sorlo');
         this.player.anchor.setTo(0.5, 0.5);
-
-        this.vFSM = new VMotionFSM(this.player);
-        this.hFSM = new HMotionFSM(this.player, this.vFSM);
-        this.attackFSM = new AttackFSM(this.player, this.vFSM, this.hFSM);
-
         game.physics.arcade.enable(this.player);
+        game.physics.arcade.TILE_BIAS = 32;
 
-        this.player.body.gravity.y = 3000;
+        this.vFSM = new VMotionFSM(this);
+        this.hFSM = new HMotionFSM(this);
+        this.attackFSM = new AttackFSM(this);
+
+        this.gravity = 1800;
+        this.player.body.gravity.y = this.gravity;
         this.player.body.setSize(this.player.width - 10, this.player.height - 5, 0, 0);
         this.cursor = game.input.keyboard.createCursorKeys();
         game.camera.follow(this.player);
         this.bgLayer.resizeWorld();
 
         this.player.skillQueue = [];
+        this.player.body.maxVelocity.y = 1000;
         this.createAnimations();
         this.player.text = game.add.text(0, window.innerHeight - 50, 'Q W E',
             { font: '30px Arial', fill: '#ffffff' });
         this.player.text.fixedToCamera = true;
 
+        
         this.handleCastingInputs();
     },
 
@@ -49,25 +52,27 @@ var playState = {
     },
 
     updateState: function () {
-        if (this.vFSM.state == 'falling' && this.player.body.blocked.down) {
-            this.vFSM.stand();
-        }
-        if (this.cursor.left.isDown) {
-            // Move the player to the left
-            // The velocity is in pixels per second
+        if (this.vFSM.state == 'air' && this.player.body.blocked.down)
+            this.vFSM.fall();
+
+        if (this.cursor.left.isDown)
             this.hFSM.moveLeft();
-        }
-
-        // If the right arrow key is pressed
-        else if (this.cursor.right.isDown) {
-            // Move the player to the right
+        else if (this.cursor.right.isDown)
             this.hFSM.moveRight();
-        }
+        else
+            this.hFSM.stand();
 
-        if (this.cursor.up.isDown && this.player.body.touching.down) {
-            // Move the player upward (jump)
+        if (this.vFSM.state == 'ground' && this.cursor.up.isDown) {
             this.vFSM.jump();
         }
+        else if (this.vFSM.state == 'air' && this.cursor.up.isDown) {
+            if (this.player.body.velocity.y < 0)
+                this.player.body.gravity.y = this.gravity - 500;
+            else
+                this.player.body.gravity.y = this.gravity;
+        }
+        else
+            this.player.body.gravity.y = this.gravity;
     },
 
     createAnimations: function () {
@@ -84,7 +89,6 @@ var playState = {
 
         shoot.onComplete.add(function () { this.attackFSM.stand() }, this);
         iceWall.onComplete.add(function () { this.attackFSM.stand() }, this);
-        walk.onComplete.add(function () { this.hFSM.stand() }, this);
     },
 
     handleCastingInputs: function () {
@@ -119,6 +123,7 @@ function invoke() {
 
     this.player.text.setText(text);
 }
+
 
 function cast() {
     if (this.game.hFSM.state == 'idle' && this.game.vFSM.state == 'ground') {

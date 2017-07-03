@@ -15,6 +15,7 @@ var loadState = {
             'assets/sorlo/sorlo.json', Phaser.Loader.TEXTURE_ATLAS_JSON_HASH);
 
         game.load.image('goodly-2x', 'assets/goodly-2x.png'); 
+        game.load.image('bg', 'assets/bg.jpg'); 
         game.load.tilemap('level1', 'assets/levels/level1.json', null, Phaser.Tilemap.TILED_JSON);
     },
 
